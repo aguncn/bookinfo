@@ -1,110 +1,103 @@
 # fok from https://github.com/rhardt-pivotal/rob-reviews
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/istio/istio)](https://goreportcard.com/report/github.com/istio/istio)
-[![GoDoc](https://godoc.org/istio.io/istio?status.svg)](https://godoc.org/istio.io/istio)
+# Bookinfo Sample
 
-# Istio
+See <https://istio.io/docs/examples/bookinfo/>.
 
-An open platform to connect, manage, and secure microservices.
+**Note**: We need the owner of the PR to perform the appropriate testing with built/pushed images to their own docker repository before we would build/push images to the official Istio repository.
 
-- For in-depth information about how to use Istio, visit [istio.io](https://istio.io)
-- To ask questions and get assistance from our community, visit [discuss.istio.io](https://discuss.istio.io)
-- To learn how to participate in our overall community, visit [our community page](https://istio.io/about/community)
+## Build docker images
 
-In this README:
+```bash
+cd samples/bookinfo
+src/build-services.sh <version> <prefix>
+```
 
-- [Introduction](#introduction)
-- [Repositories](#repositories)
-- [Issue management](#issue-management)
+Where `<version>` is the tag and `<prefix>` is the docker registry to tag the images.
 
-In addition, here are some other documents you may wish to read:
+For example:
 
-- [Istio Community](https://github.com/istio/community) - describes how to get involved and contribute to the Istio project
-- [Istio Developer's Guide](https://github.com/istio/istio/wiki/Preparing-for-Development) - explains how to set up and use an Istio development environment
-- [Project Conventions](https://github.com/istio/istio/wiki/Development-Conventions) - describes the conventions we use within the code base
-- [Creating Fast and Lean Code](https://github.com/istio/istio/wiki/Writing-Fast-and-Lean-Code) - performance-oriented advice and guidelines for the code base
+```bash
+$ src/build-services.sh 1.16.3 docker.io/shamsher31
+Sending build context to Docker daemon  1.218MB
+Step 1/16 : FROM python:3.7.7-slim
+3.7.7-slim: Pulling from library/python
+8559a31e96f4: Pull complete
+...
+Successfully built 1b293582cc2e
+Successfully tagged shamsher31/examples-bookinfo-ratings-v2:1.16.3
+Successfully tagged shamsher31/examples-bookinfo-ratings-v2:latest
+```
 
-You'll find many other useful documents on our [Wiki](https://github.com/istio/istio/wiki).
+The bookinfo versions are different from Istio versions since the sample should work with any version of Istio.
 
-## Introduction
+## Push docker images to docker hub
 
-Istio is an open platform for providing a uniform way to integrate
-microservices, manage traffic flow across microservices, enforce policies
-and aggregate telemetry data. Istio's control plane provides an abstraction
-layer over the underlying cluster management platform, such as Kubernetes.
+After the local build is successful, you need to update the YAML file with the latest tag that you used during the build eg: `1.16.3`.
 
-Istio is composed of these components:
+Run the following script to build the docker images, push them to docker hub, and to update the YAML files in one step.
 
-- **Envoy** - Sidecar proxies per microservice to handle ingress/egress traffic
-   between services in the cluster and from a service to external
-   services. The proxies form a _secure microservice mesh_ providing a rich
-   set of functions like discovery, rich layer-7 routing, circuit breakers,
-   policy enforcement and telemetry recording/reporting
-   functions.
+```bash
+./build_push_update_images.sh <version> <prefix>
+```
 
-  > Note: The service mesh is not an overlay network. It
-  > simplifies and enhances how microservices in an application talk to each
-  > other over the network provided by the underlying platform.
+For example:
 
-- **Istiod** - The Istio control plane. It provides service discovery, configuration and certificate management. It consists of the following sub-components:
+```bash
+$ ./build_push_update_images.sh 1.16.3 --prefix=shamsher31
+...
+1.16.3: digest: sha256:70634d3847a190b9826975c8 size: 3883
+Pushing: shamsher31/examples-bookinfo-reviews-v2:1.16.3
+The push refers to a repository [docker.io/shamsher31/examples-bookinfo-reviews-v2]
+...
+```
 
-    - **Pilot** - Responsible for configuring the proxies at runtime.
+Verify that expected tag eg: `1.16.3` is updated in `platform/kube/bookinfo*.yaml` files.
 
-    - **Citadel** - Responsible for certificate issuance and rotation.
+## Tests
 
-    - **Galley** - Responsible for validating, ingesting, aggregating, transforming and distributing config within Istio.
+Test that the bookinfo samples work with the latest tag eg: `1.16.3` that you pushed.
 
-- **Operator** - The component provides user friendly options to operate the Istio service mesh.
+```bash
+$ cd ../../
+$ kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
+serviceaccount/bookinfo-details created
+deployment.apps/details-v1 created
+serviceaccount/bookinfo-ratings created
+...
+```
 
-## Repositories
+Wait for all the pods to be in `Running` start.
 
-The Istio project is divided across a few GitHub repositories:
+```bash
+$ kubectl get pods
+NAME                              READY   STATUS    RESTARTS   AGE
+details-v1-7f556f5c6b-485l2       2/2     Running   0          10m
+productpage-v1-84c8f95c8d-tlml2   2/2     Running   0          10m
+ratings-v1-66777f856b-2ls78       2/2     Running   0          10m
+reviews-v1-64c47f4f44-rx642       2/2     Running   0          10m
+reviews-v2-66b6b95f44-s5nt6       2/2     Running   0          10m
+reviews-v3-7f69dd7fd4-zjvc8       2/2     Running   0          10m
+```
 
-- [istio/api](https://github.com/istio/api). This repository defines
-component-level APIs and common configuration formats for the Istio platform.
+Once all the pods are in the `Running` state. Test if the bookinfo works through cli.
 
-- [istio/community](https://github.com/istio/community). This repository contains
-information on the Istio community, including the various documents that govern
-the Istio open source project.
+```bash
+$ kubectl exec -it "$(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.name}')" -c ratings -- curl productpage:9080/productpage | grep -o "<title>.*</title>"
+<title>Simple Bookstore App</title>
+```
 
-- [istio/istio](README.md). This is the main code repository. It hosts Istio's
-core components, install artifacts, and sample programs. It includes:
+You can also test it by hitting producpage in the browser.
 
-    - [istioctl](istioctl/). This directory contains code for the
-[_istioctl_](https://istio.io/docs/reference/commands/istioctl.html) command line utility.
+```bash
+http://192.168.39.116:31395/productpage
+```
 
-    - [operator](operator/). This directory contains code for the standalone
-[Istio Operator](https://istio.io/latest/docs/setup/install/standalone-operator/).
+You should see the following in the browser.
 
-    - [pilot](pilot/). This directory
-contains platform-specific code to populate the
-[abstract service model](https://istio.io/docs/concepts/traffic-management/#pilot), dynamically reconfigure the proxies
-when the application topology changes, as well as translate
-[routing rules](https://istio.io/docs/reference/config/networking/) into proxy specific configuration.
+![star](https://user-images.githubusercontent.com/2920003/86032538-212ff900-ba55-11ea-9492-d4bc90656a02.png)
 
-    - [security](security/). This directory contains security related code,
-including Citadel (acting as Certificate Authority), citadel agent, etc.
+**Note**: If everything works as mentioned above, request a new official set of images be built and pushed from the reviewer, and add another commit to the original PR with the version changes.
 
-- [istio/proxy](https://github.com/istio/proxy). The Istio proxy contains
-extensions to the [Envoy proxy](https://github.com/envoyproxy/envoy) (in the form of
-Envoy filters) that support authentication, authorization, and telemetry collection.
+Bookinfo is tested by istio.io integration tests. You can find them under [tests](https://github.com/istio/istio.io/tree/master/tests) in the [istio/istio.io](https://github.com/istio/istio.io) repository.
 
-## Issue management
-
-We use GitHub combined with ZenHub to track all of our bugs and feature requests. Each issue we track has a variety of metadata:
-
-- **Epic**. An epic represents a feature area for Istio as a whole. Epics are fairly broad in scope and are basically product-level things.
-Each issue is ultimately part of an epic.
-
-- **Milestone**. Each issue is assigned a milestone. This is 0.1, 0.2, ..., or 'Nebulous Future'. The milestone indicates when we
-think the issue should get addressed.
-
-- **Priority/Pipeline**. Each issue has a priority which is represented by the Pipeline field within GitHub. Priority can be one of
-P0, P1, P2, or >P2. The priority indicates how important it is to address the issue within the milestone. P0 says that the
-milestone cannot be considered achieved if the issue isn't resolved.
-
-To view the project board on ZenHub, we recommend downloading the ZenHub [browser extension](https://www.zenhub.com/extension).
-Please note that this is only supported in Firefox and Chrome at the moment.
-
-We don't annotate issues with Releases; Milestones are used instead. We don't use GitHub projects at all, that
-support is disabled for our organization.
