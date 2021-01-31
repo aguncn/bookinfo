@@ -1,4 +1,5 @@
 # fok from https://github.com/rhardt-pivotal/rob-reviews
+Re-implementation of the Istio Bookinfo 'Reviews' app in pure Spring Boot to show off CF, CNB and the like
 
 # Bookinfo Sample
 
