@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews-route
+  namespace: cf-workloads
+spec:
+  hosts:
+  - reviews.cf-workloads.svc.cluster.local 
+  http:
+  - match:
+    - headers:
+        end-user:
+          exact: derek
+    route:
+    - destination:
+        host: reviews-v3.cf-workloads.svc.cluster.local  
+  - match:
+    - headers:
+        end-user:
+          exact: rob
+    route:
+    - destination:
+        host: reviews-v2.cf-workloads.svc.cluster.local            
+  - route:
+    - destination:
+        host: reviews.cf-workloads.svc.cluster.local 

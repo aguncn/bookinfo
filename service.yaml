@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: reviews
+  namespace: cf-workloads
+spec:
+  ports:
+  - name: http
+    port: 9080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    guid:  ac9a6f46-6e97-4f5a-8b15-49bd28fee39e

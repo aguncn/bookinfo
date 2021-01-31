@@ -1,0 +1,14 @@
+---
+applications:
+- name: reviews-v3
+  memory: 1G
+  no-route: true
+  path: target/rob-reviews-0.0.1-SNAPSHOT.jar
+  env:
+    ENABLE_RATINGS: true
+    SERVICES_DOMAIN: cf-workloads.svc.cluster.local
+    REVIEW_TEXT_1: "It's Rainbows!!"
+    REVIEW_TEXT_2: "... and Unicorns!!!"
+    STAR_COLOR: "rainbow"
+
+

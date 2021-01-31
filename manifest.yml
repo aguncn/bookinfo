@@ -1,0 +1,14 @@
+---
+applications:
+- name: reviews
+  memory: 1G
+  no-route: true
+  path: target/rob-reviews-0.0.1-SNAPSHOT.jar
+  env:
+    ENABLE_RATINGS: true
+    SERVICES_DOMAIN: cf-workloads.svc.cluster.local
+    REVIEW_TEXT_1: "This is version 1 of robreviews"
+    REVIEW_TEXT_2: "Measuring a 6.4 on the cool scale."
+    STAR_COLOR: "purple"
+
+
