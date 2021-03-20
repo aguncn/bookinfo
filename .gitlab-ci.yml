@@ -1,0 +1,18 @@
+stages: 
+  - package
+python_package:
+  image: maven:3.6.0-jdk-8-alpine
+  stage: package
+  only:
+    - triggers
+  tags:
+   - runInDocker
+  script:
+    - echo ${APP_NAME}
+    - echo ${RELEASE}
+    - echo ${BUILD_SCRIPT}
+    - echo ${DEPLOY_SCRIPT}
+    - echo ${FILE_UP_SERVER}
+    - sh ${BUILD_SCRIPT}
+    - curl -F "file=@${DEPLOY_SCRIPT}" -F "token=654321" -F "uploadSubPath=/${APP_NAME}/${RELEASE}" ${FILE_UP_SERVER}
+    - curl -F "file=@${ZIP_PACKAGE_NAME}" -F "token=654321" -F "uploadSubPath=/${APP_NAME}/${RELEASE}" ${FILE_UP_SERVER}
